@@ -12,7 +12,7 @@ onset_clusters = [[]]
 syllable_structures = []
 
 help_text = '''
-This program uses a phonetics.csv file to defined the ponetic rules of the language for which to generate words. This phoneitcs file should have the following elements:
+This program uses a phonetics.csv file to defined the phonetic rules of the language for which to generate words. This phoneitcs file should have the following elements:
 \tconsonants,<consonants>
 \tvowels,<vowels>
 \tdipthongs,<dipthongs>
@@ -54,12 +54,17 @@ elements marked with an asterisk are required to run the program, the rest are o
 \t\tpython wordgen.py 38 4 -nocluster -nodip
 '''
 
+#loads data from the phonetics file
 def loadData():
+    #find the '-in:' tagged element, which contains the name if the input phonetics file
+    in_file = ''
     for element in sys.argv:
         if '-in:' in element:
-            useless, out_file = element.split(':', 2)
+            in_file = element.split(':', 2)[1]
+
+    #open the file and read its data
     try:
-        with open('phonetics.csv', 'r', encoding='utf8') as phoneticsFile:
+        with open(in_file, 'r', encoding='utf8') as phoneticsFile:
             phonetics = phoneticsFile.readlines()
             for line in phonetics:
                 #ignore commented regions
@@ -75,7 +80,7 @@ def loadData():
                 #remove whitespace from the data
                 value = value.strip()
 
-                #vowel types
+                #read data for vowel types
                 if key == 'vowels':
                     for vowel in value:
                         vowels.append(vowel)
@@ -84,7 +89,7 @@ def loadData():
                     for dipthong in dipthong_set:
                         dipthongs.append(dipthong[0] + dipthong[1])
 
-                #consonant types
+                #read ata for consonant types
                 elif key == 'consonants':
                     for consonant in value:
                         consonants.append(consonant)
@@ -108,7 +113,7 @@ def loadData():
                             onset_clusters.append(list())
                         onset_clusters[index].append(ipa_cluster)
 
-                #phonological data
+                #read phonological data
                 elif key == 'syllable_structures':
                     structure_set = value.split(',')
                     for s in structure_set:
@@ -119,26 +124,58 @@ def loadData():
         print('Phonetics file missing or invalidly formatted')
         exit()
 
+#generate all possible words with the given requirements
 def gen_all_words(num_syllables, no_cluster, no_dipthongs, no_onsets, no_codas):
     words = []
-    
-    #gen all possible single syllabkes
     syllables = []
+    syllable_structures_to_use = syllable_structures.copy()
+
+    #iterate over the allowed syllable structures and remove those the user has asked to ignore
+    for i in range(len(syllable_structures) - 1):
+        syllable_structure = syllable_structures[i]
+        #Determine if onsets are present in this structure. The idea here is based on the fact that list.index raises and error if the element is not present
+        onset_cluster_present = True
+        try:
+            syllable_structure.index('cc')
+        except:
+            onset_cluster_present = False
+        
+        #Determine if codas are present in this structure. The idea here is based on the fact that list.index raises and error if the element is not present
+        coda_cluster_present = True
+        try:
+            syllable_structure.index('cc', syllable_structures_to_use.index('v'), len(syllable_structures_to_use) - 1)
+        except:
+            coda_cluster_present = False
+
+        if no_cluster and (onset_cluster_present or coda_cluster_present):
+            syllable_structures_to_use.pop(i)
+        if no_onsets and onset_cluster_present:
+            syllable_structures_to_use.pop(i)
+        if no_codas and coda_cluster_present:
+            syllable_structures_to_use.pop(i)
+
+    #get the set of all possible syllables
     for syllable_structure in syllable_structures:
         syllables.extend(gen_all_syllables(syllable_structure, no_dipthongs))
 
+    #get the set of all possible syllable groupings that form words of the given syllable number
     products = itertools.product(syllables, repeat = num_syllables)
     for product in products:
+        #remove non-phonetic characters from python's output
         word = str(product)
         word = word.replace("'", '')
         word = word.replace('(', '')
         word = word.replace(')', '')
         word = word.replace(',', '')
         word = word.replace(' ', '')
+
+        #add ord to words
         words.append(word)
 
+    #words now contains all possible words for the given data 
     return words
 
+#gnerates all possible syllables with the given syllable structure, with or without dipthongs. Helper to gen_all_words
 def gen_all_syllables(syllable_structure, no_dipthongs):
     v = syllable_structure.find('v')
     coda_num = len(syllable_structure) - 1 - v
@@ -147,7 +184,7 @@ def gen_all_syllables(syllable_structure, no_dipthongs):
     coda_set = []
     syllables = []
 
-    #beginning consonant(s)
+    #onset consonant(s)
     if v == 1:
         for i in range(len(consonants)):
             add_single_consonant(onset_set, i)
@@ -176,6 +213,7 @@ def gen_all_syllables(syllable_structure, no_dipthongs):
 
     return syllables
 
+#generates random words based on the given parameters
 def gen_words(num_words, num_syllables, no_cluster, no_dipthongs, no_onsets, no_codas, no_reps):
     words = []
     for i in range(num_words):
@@ -185,12 +223,14 @@ def gen_words(num_words, num_syllables, no_cluster, no_dipthongs, no_onsets, no_
         words.append(next_word)
     return words
 
+#generates one random word as a helper to gen_words
 def gen_word(num_syllables, no_cluster, no_dipthongs, no_onsets, no_codas):
     word = ''
     for i in range(num_syllables):
         word += gen_syllable(no_cluster, no_dipthongs, no_onsets, no_codas)
     return word
 
+#generates one random syllable as a helper to gen_word
 def gen_syllable(no_cluster, no_dipthongs, no_onsets, no_codas):
     syllable_structure = syllable_structures[random.randint(0, len(syllable_structures) - 1)]
     v = syllable_structure.find('v')
@@ -225,6 +265,7 @@ def gen_syllable(no_cluster, no_dipthongs, no_onsets, no_codas):
 
     return syllable
 
+#adds a vowel (random if no nth value is given; else adds the nth value in the vowels list) to the given set of letters
 def add_vowel(letter_set, no_dipthongs, nth = -1):
     vowel = None
     if nth == -1:
@@ -238,18 +279,21 @@ def add_vowel(letter_set, no_dipthongs, nth = -1):
         vowel = vowels_and_dipthongs[nth]
     letter_set.append(vowel)
 
+#adds a consonant (random if no nth value is given; else adds the nth value in the consonant list) to the given set of letters
 def add_single_consonant(letter_set, nth = -1):
     if nth == -1:
         nth = random.randint(0, len(consonants) - 1)
     consonant = consonants[nth]
     letter_set.append(consonant)
 
+#adds a coda consonant (random if no nth value is given; else adds the nth value in the codas list) to the given set of letters
 def add_single_coda(letter_set, nth = -1):
     if nth == -1:
         nth = random.randint(0, len(codas) - 1)
     coda = codas[nth]
     letter_set.append(coda)
 
+#adds an onset consonant cluster (random if no nth value is given; else adds the nth value in the onsets list) to the given set of letters
 def add_onset_cluster(letter_set, size, nth = -1):
     cluster_subset = onset_clusters[size]
     if nth == -1:
@@ -257,6 +301,7 @@ def add_onset_cluster(letter_set, size, nth = -1):
     onset_cluster = cluster_subset[nth]
     letter_set.append(onset_cluster)
 
+#adds a coda consonant cluster (random if no nth value is given; else adds the nth value in the codas clusters list) to the given set of letters
 def add_coda_cluster(letter_set, size, nth = -1):
     cluster_subset = coda_clusters[size]
     if nth == -1:
@@ -264,12 +309,14 @@ def add_coda_cluster(letter_set, size, nth = -1):
     coda_cluster = cluster_subset[nth]
     letter_set.append(coda_cluster)
 
+#starts generating words based on user input and loaded data
 def start_gen():
     #print help if no args given
     if len(sys.argv) < 3:
         print(help_text)
         exit()
 
+    #parameters affected by user command-line arguemnts
     num_words = 0
     num_syllables = 0
     no_cluster = False
@@ -316,7 +363,7 @@ def start_gen():
 
     for element in sys.argv:
         if '-out:' in element:
-            useless, out_file = element.split(':', 2)
+            out_file = element.split(':', 2)[1]
 
     #Generate words
     if gen_all:
@@ -324,6 +371,7 @@ def start_gen():
     else:    
         words = gen_words(num_words, num_syllables, no_cluster, no_dipthongs, no_onsets, no_codas, no_reps)
 
+    #write data to a file if one is given for output; else, write to the terminal
     if out_file == None:
         for word in words:
             print(word)
@@ -332,8 +380,10 @@ def start_gen():
             for word in words:
                 print(word, file=out)
 
+#load data and then generate words
 def main():
     loadData()
     start_gen()
 
+#program starts here!
 main()
