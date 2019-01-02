@@ -36,8 +36,8 @@ This program uses a phonetics.csv file to defined the phonetic rules of the lang
 \t\tsyllable_structures,v,cv,cvc,ccvc,ccvcc,cvcc
 
 
-usage form: python wordgen.py <*num_words> <*num_syllables_per_word> <*phonotactics_file> <output_file> <allow_clusters> <allow_dipthongs> <allow_codas> <allow_onsets> <allow_repeats>
-elements marked with an asterisk are required to run the program, the rest are optional customizations
+usage form: python wordgen.py <*num_words> <*num_syllables_per_word> <*phonotactics_file>
+elements listed above are required to run the program, the rest shown here are optional customizations
 \t<num_words> is the number of words to generate. Enter 0 to generate all possible words (no repeats)
 \t<num_syllables_per_word> is the number of syllables each word will have
 \ty<phonotactics_file> type -in:FILE_NAME to specify the file containing phonotactic data for word generation
@@ -46,6 +46,8 @@ elements marked with an asterisk are required to run the program, the rest are o
 \t<allow_dipthongs> type -nodip to indicate that no dipthongs are allowed
 \t<allow_codas> type -nocoda to ban coda consonants
 \t<allow_onsets> type -noonset to ban onset consonants
+\t<allow_coda_clusters> type -nocodac to ban coda clusters
+\t<allow_onset_clusters> type -noonsetc to ban onset clusters
 \t<allow_repeats> type -noreps to ban repeat word generation
 \tex:
 \t\tpython wordgen.py 50 2 -nocluster
@@ -124,40 +126,77 @@ def loadData():
         print('Phonetics file missing or invalidly formatted')
         exit()
 
-#generate all possible words with the given requirements
-def gen_all_words(num_syllables, no_cluster, no_dipthongs, no_onsets, no_codas):
-    words = []
-    syllables = []
-    syllable_structures_to_use = syllable_structures.copy()
+#Determine if an onset is present in this structure. The idea here is based on the fact that list.index raises and error if the element is not present
+def has_onset(syllable_structure):
+    onset_present = True
+    try:
+        syllable_structure.index('c', 0, syllable_structure.index('v'))
+    except:
+        onset_present = False
+    return onset_present
 
-    #iterate over the allowed syllable structures and find those the user has asked to ignore
+#Determine if a coda is present in this structure.
+def has_coda(syllable_structure):
+    coda_present = True
+    try:
+        syllable_structure.index('c', syllable_structure.index('v'), len(syllable_structure))
+    except:
+        coda_present = False
+    return coda_present
+
+#Determine if an onset cluster is present in this structure.
+def has_onset_cluster(syllable_structure):
+    onset_cluster_present = True
+    try:
+        syllable_structure.index('cc', 0, syllable_structure.index('v'))
+    except:
+        onset_cluster_present = False
+    return onset_cluster_present
+
+#Determine if a coda cluster is present in this structure.
+def has_coda_cluster(syllable_structure):
+    coda_cluster_present = True
+    try:
+        syllable_structure.index('cc', syllable_structure.index('v'), len(syllable_structure))
+    except:
+        coda_cluster_present = False
+    return coda_cluster_present
+
+def find_disallowed_syllable_structures(no_cluster, no_dipthongs, no_onsets, no_codas, no_onset_clusters, no_coda_clusters):
     structures_to_remove = []
     for syllable_structure in syllable_structures:
-        #Determine if onsets are present in this structure. The idea here is based on the fact that list.index raises and error if the element is not present
-        onset_cluster_present = True
-        try:
-            syllable_structure.index('cc', 0, syllable_structure.index('v'))
-        except:
-            onset_cluster_present = False
+        onset_present = has_onset(syllable_structure)
+        coda_present = has_coda(syllable_structure)
+        onset_cluster_present = has_onset_cluster(syllable_structure)
+        coda_cluster_present = has_coda_cluster(syllable_structure)
 
-        #Determine if codas are present in this structure. The idea here is based on the fact that list.index raises and error if the element is not present
-        coda_cluster_present = True
-        try:
-            
-            syllable_structure.index('cc', syllable_structure.index('v'), len(syllable_structures_to_use) - 1)
-        except:
-            coda_cluster_present = False
+        if no_cluster and (onset_cluster_present or coda_cluster_present) and not syllable_structure in structures_to_remove:
+            structures_to_remove.append(syllable_structure)
+        else:
+            if no_onset_clusters and onset_cluster_present and not syllable_structure in structures_to_remove:
+                structures_to_remove.append(syllable_structure)
+            if no_coda_clusters and coda_cluster_present and not syllable_structure in structures_to_remove:
+                structures_to_remove.append(syllable_structure)
+        if no_codas and coda_present and not syllable_structure in structures_to_remove:
+            structures_to_remove.append(syllable_structure)
+        if no_onsets and onset_present and not syllable_structure in structures_to_remove:
+            structures_to_remove.append(syllable_structure)
+    print(structures_to_remove)
+    return structures_to_remove
 
-        if no_cluster and (onset_cluster_present or coda_cluster_present):
-            structures_to_remove.append(syllable_structure)
-        if no_onsets and onset_cluster_present:
-            structures_to_remove.append(syllable_structure)
-        if no_codas and coda_cluster_present:
-            structures_to_remove.append(syllable_structure)
-
-    #remove unwanted elements in syllable structures
+def find_allowed_syllable_structures(no_cluster, no_dipthongs, no_onsets, no_codas, no_onset_clusters, no_coda_clusters):
+    syllable_structures_to_use = syllable_structures.copy()
+    structures_to_remove = find_disallowed_syllable_structures(no_cluster, no_dipthongs, no_onsets, no_codas, no_onset_clusters, no_coda_clusters)
     for i in structures_to_remove:
         syllable_structures_to_use.remove(i)
+    print(syllable_structures_to_use)
+    return syllable_structures_to_use
+
+#generate all possible words with the given requirements
+def gen_all_words(num_syllables, no_cluster, no_dipthongs, no_onsets, no_codas, no_onset_clusters, no_coda_clusters):
+    words = []
+    syllables = []
+    syllable_structures_to_use = find_allowed_syllable_structures(no_cluster, no_dipthongs, no_onsets, no_codas, no_onset_clusters, no_coda_clusters)
 
     #get the set of all possible syllables
     for syllable_structure in syllable_structures_to_use:
@@ -209,7 +248,13 @@ def gen_all_syllables(syllable_structure, no_dipthongs):
         for i in range(len(coda_clusters)):
             add_coda_cluster(coda_set, coda_num - 1 - 2)
 
+    #make sure each list has at least one element so the loop runs!
+    if len(onset_set) == 0:
+        onset_set.append('')
+    if len(coda_set) == 0:
+        coda_set.append('')
 
+    #assemble syllable
     for onset in onset_set:
         for vowel in vowel_set:
             for coda in coda_set:
@@ -219,25 +264,26 @@ def gen_all_syllables(syllable_structure, no_dipthongs):
     return syllables
 
 #generates random words based on the given parameters
-def gen_words(num_words, num_syllables, no_cluster, no_dipthongs, no_onsets, no_codas, no_reps):
+def gen_words(num_words, num_syllables, no_cluster, no_dipthongs, no_onsets, no_codas, no_reps, no_onset_clusters, no_coda_clusters):
     words = []
+    syllable_structures_to_use = find_allowed_syllable_structures(no_cluster, no_dipthongs, no_onsets, no_codas, no_onset_clusters, no_coda_clusters)
     for i in range(num_words):
         next_word = ''
         while no_reps and next_word in words or next_word == '':
-            next_word = gen_word(num_syllables, no_cluster, no_dipthongs, no_onsets, no_codas)
+            next_word = gen_word(num_syllables, syllable_structures_to_use)
         words.append(next_word)
     return words
 
 #generates one random word as a helper to gen_words
-def gen_word(num_syllables, no_cluster, no_dipthongs, no_onsets, no_codas):
+def gen_word(num_syllables, syllable_structures_to_use):
     word = ''
     for i in range(num_syllables):
-        word += gen_syllable(no_cluster, no_dipthongs, no_onsets, no_codas)
+        word += gen_syllable(syllable_structures_to_use)
     return word
 
 #generates one random syllable as a helper to gen_word
-def gen_syllable(no_cluster, no_dipthongs, no_onsets, no_codas):
-    syllable_structure = syllable_structures[random.randint(0, len(syllable_structures) - 1)]
+def gen_syllable(syllable_structures_to_use):
+    syllable_structure = syllable_structures_to_use[random.randint(0, len(syllable_structures_to_use) - 1)]
     v = syllable_structure.find('v')
     coda_num = len(syllable_structure) - 1 - v
     letter_set = []
@@ -326,6 +372,8 @@ def start_gen():
     num_syllables = 0
     no_cluster = False
     no_dipthongs = False
+    no_coda_clusters = False
+    no_onset_clusters = False
     no_onsets = False
     no_codas = False
     no_reps = False
@@ -357,6 +405,12 @@ def start_gen():
     if '-nodip' in sys.argv:
         no_dipthongs = True
 
+    if 'nocodac' in sys.argv:
+        no_coda_clusters = True
+
+    if 'noonsetc' in sys.argv:
+        no_onset_clusters = True
+
     if '-noonset' in sys.argv:
         no_onsets = True
     
@@ -372,9 +426,9 @@ def start_gen():
 
     #Generate words
     if gen_all:
-        words = gen_all_words(num_syllables, no_cluster, no_dipthongs, no_onsets, no_codas)
+        words = gen_all_words(num_syllables, no_cluster, no_dipthongs, no_onsets, no_codas, no_onset_clusters, no_coda_clusters)
     else:    
-        words = gen_words(num_words, num_syllables, no_cluster, no_dipthongs, no_onsets, no_codas, no_reps)
+        words = gen_words(num_words, num_syllables, no_cluster, no_dipthongs, no_onsets, no_codas, no_reps, no_onset_clusters, no_coda_clusters)
 
     #write data to a file if one is given for output; else, write to the terminal
     if out_file == None:
