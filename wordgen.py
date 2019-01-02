@@ -130,32 +130,37 @@ def gen_all_words(num_syllables, no_cluster, no_dipthongs, no_onsets, no_codas):
     syllables = []
     syllable_structures_to_use = syllable_structures.copy()
 
-    #iterate over the allowed syllable structures and remove those the user has asked to ignore
-    for i in range(len(syllable_structures) - 1):
-        syllable_structure = syllable_structures[i]
+    #iterate over the allowed syllable structures and find those the user has asked to ignore
+    structures_to_remove = []
+    for syllable_structure in syllable_structures:
         #Determine if onsets are present in this structure. The idea here is based on the fact that list.index raises and error if the element is not present
         onset_cluster_present = True
         try:
-            syllable_structure.index('cc')
+            syllable_structure.index('cc', 0, syllable_structure.index('v'))
         except:
             onset_cluster_present = False
-        
+
         #Determine if codas are present in this structure. The idea here is based on the fact that list.index raises and error if the element is not present
         coda_cluster_present = True
         try:
-            syllable_structure.index('cc', syllable_structures_to_use.index('v'), len(syllable_structures_to_use) - 1)
+            
+            syllable_structure.index('cc', syllable_structure.index('v'), len(syllable_structures_to_use) - 1)
         except:
             coda_cluster_present = False
 
         if no_cluster and (onset_cluster_present or coda_cluster_present):
-            syllable_structures_to_use.pop(i)
+            structures_to_remove.append(syllable_structure)
         if no_onsets and onset_cluster_present:
-            syllable_structures_to_use.pop(i)
+            structures_to_remove.append(syllable_structure)
         if no_codas and coda_cluster_present:
-            syllable_structures_to_use.pop(i)
+            structures_to_remove.append(syllable_structure)
+
+    #remove unwanted elements in syllable structures
+    for i in structures_to_remove:
+        syllable_structures_to_use.remove(i)
 
     #get the set of all possible syllables
-    for syllable_structure in syllable_structures:
+    for syllable_structure in syllable_structures_to_use:
         syllables.extend(gen_all_syllables(syllable_structure, no_dipthongs))
 
     #get the set of all possible syllable groupings that form words of the given syllable number
