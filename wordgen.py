@@ -2,6 +2,7 @@ import random
 import sys
 import itertools
 
+#global data vars
 consonants = []
 vowels = []
 dipthongs = []
@@ -11,6 +12,7 @@ coda_clusters = [[]]
 onset_clusters = [[]]
 syllable_structures = []
 
+#user help text
 help_text = '''
 This program uses a phonetics.csv file to defined the phonetic rules of the language for which to generate words. This phoneitcs file should have the following elements:
 \tconsonants,<consonants>
@@ -162,6 +164,7 @@ def has_coda_cluster(syllable_structure):
         coda_cluster_present = False
     return coda_cluster_present
 
+#finds all syllable structures that are not allowed by user-entered rules. Helper to find_allowed_syllable_structures
 def find_disallowed_syllable_structures(no_cluster, no_dipthongs, no_onsets, no_codas, no_onset_clusters, no_coda_clusters):
     structures_to_remove = []
     for syllable_structure in syllable_structures:
@@ -181,15 +184,14 @@ def find_disallowed_syllable_structures(no_cluster, no_dipthongs, no_onsets, no_
             structures_to_remove.append(syllable_structure)
         if no_onsets and onset_present and not syllable_structure in structures_to_remove:
             structures_to_remove.append(syllable_structure)
-    print(structures_to_remove)
     return structures_to_remove
 
+#finds all syllable structures that are allowed by user-entered rules.
 def find_allowed_syllable_structures(no_cluster, no_dipthongs, no_onsets, no_codas, no_onset_clusters, no_coda_clusters):
     syllable_structures_to_use = syllable_structures.copy()
     structures_to_remove = find_disallowed_syllable_structures(no_cluster, no_dipthongs, no_onsets, no_codas, no_onset_clusters, no_coda_clusters)
     for i in structures_to_remove:
         syllable_structures_to_use.remove(i)
-    print(syllable_structures_to_use)
     return syllable_structures_to_use
 
 #generate all possible words with the given requirements
