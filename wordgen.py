@@ -272,46 +272,39 @@ def gen_words(num_words, num_syllables, no_cluster, no_dipthongs, no_onsets, no_
     for i in range(num_words):
         next_word = ''
         while no_reps and next_word in words or next_word == '':
-            next_word = gen_word(num_syllables, syllable_structures_to_use)
+            next_word = gen_word(num_syllables, syllable_structures_to_use, no_dipthongs)
         words.append(next_word)
     return words
 
 #generates one random word as a helper to gen_words
-def gen_word(num_syllables, syllable_structures_to_use):
+def gen_word(num_syllables, syllable_structures_to_use, no_dipthongs):
     word = ''
     for i in range(num_syllables):
-        word += gen_syllable(syllable_structures_to_use)
+        word += gen_syllable(syllable_structures_to_use, no_dipthongs)
     return word
 
 #generates one random syllable as a helper to gen_word
-def gen_syllable(syllable_structures_to_use):
+def gen_syllable(syllable_structures_to_use, no_dipthongs):
     syllable_structure = syllable_structures_to_use[random.randint(0, len(syllable_structures_to_use) - 1)]
     v = syllable_structure.find('v')
     coda_num = len(syllable_structure) - 1 - v
     letter_set = []
     syllable = ''
 
-    #prevent clusters is needed
-    if no_cluster:
-        while v > 1 or coda_num > 1:
-            syllable_structure = syllable_structures[random.randint(0, len(syllable_structures) - 1)]
-    
     #beginning consonant(s)
-    if not no_onsets:
-        if v == 1:
-            add_single_consonant(letter_set)
-        elif v > 1:
-            add_onset_cluster(letter_set, v - 1 - 2)
+    if v == 1:
+        add_single_consonant(letter_set)
+    elif v > 1:
+        add_onset_cluster(letter_set, v - 1 - 2)
 
     #vowel
     add_vowel(letter_set, no_dipthongs)
 
     #coda consonant(s)
-    if not no_codas:
-        if coda_num == 1:
-            add_single_coda(letter_set)
-        elif coda_num > 1:
-            add_coda_cluster(letter_set, coda_num - 1 - 2)
+    if coda_num == 1:
+        add_single_coda(letter_set)
+    elif coda_num > 1:
+        add_coda_cluster(letter_set, coda_num - 1 - 2)
 
     for letter in letter_set:
         syllable += letter
