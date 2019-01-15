@@ -1,4 +1,4 @@
-This program uses a phonetics.csv file to defined the phonetic rules of the language for which to generate words. This phonetics file should have the following elements:
+This program uses a phonetics.csv file to defined the phonetic rules of the language for which to generate words. This phoneitcs file should have the following elements:
         consonants,<consonants>
         vowels,<vowels>
         dipthongs,<dipthongs>
@@ -6,15 +6,15 @@ This program uses a phonetics.csv file to defined the phonetic rules of the lang
         coda_clusters,<coda_clusters>
         onset_clusters,<onset_clusters>
         syllable_structures,<syllable_structures>
-        use # to comment out a line--the whole line is ignored  regardless of there # is placed!
+        use # to comment out a line--the whole line is ignored  regarless of there # is placed!
         ex
                 #Basic sounds
-                consonants,fvszptjwlrhtdmn
-                vowels,aeiou
+                consonants,f,v,s,z,p,t,j,w,l,r,h,t,d,m,n
+                vowels,a,e,i,o,u
                 dipthongs,ai,eu
 
                 #clusters and codas
-                codas,szf
+                codas,s,z,f
                 coda_clusters,st,rl
                 onset_clusters,ts,lr,dz
 
@@ -22,8 +22,8 @@ This program uses a phonetics.csv file to defined the phonetic rules of the lang
                 syllable_structures,v,cv,cvc,ccvc,ccvcc,cvcc
 
 
-usage form: python wordgen.py <*num_words> <*num_syllables_per_word> <*phonotactics_file> <output_file> <allow_clusters> <allow_dipthongs> <allow_codas> <allow_onsets> <allow_repeats>
-elements marked with an asterisk are required to run the program, the rest are optional customizations
+usage form: python wordgen.py <*num_words> <*num_syllables_per_word> <*phonotactics_file>
+elements listed above are required to run the program, the rest shown here are optional customizations
         <num_words> is the number of words to generate. Enter 0 to generate all possible words (no repeats)
         <num_syllables_per_word> is the number of syllables each word will have
         y<phonotactics_file> type -in:FILE_NAME to specify the file containing phonotactic data for word generation
@@ -32,6 +32,8 @@ elements marked with an asterisk are required to run the program, the rest are o
         <allow_dipthongs> type -nodip to indicate that no dipthongs are allowed
         <allow_codas> type -nocoda to ban coda consonants
         <allow_onsets> type -noonset to ban onset consonants
+        <allow_coda_clusters> type -nocodac to ban coda clusters
+        <allow_onset_clusters> type -noonsetc to ban onset clusters
         <allow_repeats> type -noreps to ban repeat word generation
         ex:
                 python wordgen.py 50 2 -nocluster
