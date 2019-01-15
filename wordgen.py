@@ -25,12 +25,12 @@ This program uses a phonetics.csv file to defined the phonetic rules of the lang
 \tuse # to comment out a line--the whole line is ignored  regarless of there # is placed!
 \tex
 \t\t#Basic sounds
-\t\tconsonants,fvszptjwlrhtdmn
-\t\tvowels,aeiou
+\t\tconsonants,f,v,s,z,p,t,j,w,l,r,h,t,d,m,n
+\t\tvowels,a,e,i,o,u
 \t\tdipthongs,ai,eu
 
 \t\t#clusters and codas
-\t\tcodas,szf
+\t\tcodas,s,z,f
 \t\tcoda_clusters,st,rl
 \t\tonset_clusters,ts,lr,dz
 
@@ -86,31 +86,28 @@ def loadData():
 
                 #read data for vowel types
                 if key == 'vowels':
-                    for vowel in value:
+                    for vowel in value.split(','):
                         vowels.append(vowel)
                 elif key == 'dipthongs':
-                    dipthong_set = value.split(',')
-                    for dipthong in dipthong_set:
+                    for dipthong in value.split(','):
                         dipthongs.append(dipthong[0] + dipthong[1])
 
                 #read ata for consonant types
                 elif key == 'consonants':
-                    for consonant in value:
+                    for consonant in value.split(','):
                         consonants.append(consonant)
                 elif key == 'codas':
                     for coda in value:
                         codas.append(coda)
                 elif key == 'coda_clusters':
-                    cluster_set = value.split(',')
-                    for cluster in cluster_set:
+                    for cluster in value.split(','):
                         ipa_cluster = cluster
                         index = len(cluster) - 2
                         while index >= len(coda_clusters):
                             coda_clusters.append(list())
                         coda_clusters[index].append(ipa_cluster)
                 elif key == 'onset_clusters':
-                    cluster_set = value.split(',')
-                    for cluster in cluster_set:
+                    for cluster in value.split(','):
                         ipa_cluster = cluster
                         index = len(cluster) - 2
                         while index >= len(onset_clusters):
@@ -385,7 +382,7 @@ def start_gen():
     except:
         print('please enter a non-negative integer number of words to generate')
         exit()
-
+        
     try:
         num_syllables = int(sys.argv[2])
         if(num_syllables < 0):
@@ -396,22 +393,16 @@ def start_gen():
 
     if '-nocluster' in sys.argv:
         no_cluster = True
-    
     if '-nodip' in sys.argv:
         no_dipthongs = True
-
     if 'nocodac' in sys.argv:
         no_coda_clusters = True
-
     if 'noonsetc' in sys.argv:
         no_onset_clusters = True
-
     if '-noonset' in sys.argv:
         no_onsets = True
-    
     if '-nocoda' in sys.argv:
         no_codas = True
-
     if '-noreps' in sys.argv:
         no_reps = True
 
