@@ -59,7 +59,7 @@ elements listed above are required to run the program, the rest shown here are o
 '''
 
 #loads data from the phonetics file
-def loadData():
+def load_data():
     #find the '-in:' tagged element, which contains the name if the input phonetics file
     in_file = ''
     for element in sys.argv:
@@ -354,11 +354,6 @@ def add_coda_cluster(letter_set, size, nth = -1):
 
 #starts generating words based on user input and loaded data
 def start_gen():
-    #print help if no args given
-    if len(sys.argv) < 3:
-        print(help_text)
-        exit()
-
     #parameters affected by user command-line arguemnts
     num_words = 0
     num_syllables = 0
@@ -427,7 +422,13 @@ def start_gen():
 
 #load data and then generate words
 def main():
-    loadData()
+    #print help and exit if no args given
+    if len(sys.argv) < 3:
+        print(help_text)
+        exit()
+
+    #Otherwise, run the program
+    load_data()
     start_gen()
 
 #program starts here!
