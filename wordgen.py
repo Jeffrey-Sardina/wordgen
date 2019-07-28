@@ -37,7 +37,6 @@ This program uses a phonetics.csv file to defined the phonetic rules of the lang
 \t\t#syllable structure patterns
 \t\tsyllable_structures,v,cv,cvc,ccvc,ccvcc,cvcc
 
-
 usage form: python wordgen.py <*num_words> <*num_syllables_per_word> <*phonotactics_file>
 elements listed above are required to run the program, the rest shown here are optional customizations
 \t<num_words> is the number of words to generate. Enter 0 to generate all possible words (no repeats)
@@ -51,6 +50,7 @@ elements listed above are required to run the program, the rest shown here are o
 \t<allow_coda_clusters> type -nocodac to ban coda clusters
 \t<allow_onset_clusters> type -noonsetc to ban onset clusters
 \t<allow_repeats> type -noreps to ban repeat word generation
+\t<randomorder> type -rand to randomize output order (only applies if generating all possible words)
 \tex:
 \t\tpython wordgen.py 50 2 -nocluster
 \t\tpython wordgen.py 23 3 -nodip
@@ -83,6 +83,8 @@ def load_data():
 
                 #remove whitespace from the data
                 value = value.strip()
+                if len(value) == 0:
+                    continue
 
                 #read data for vowel types
                 if key == 'vowels':
@@ -90,14 +92,15 @@ def load_data():
                         vowels.append(vowel)
                 elif key == 'dipthongs':
                     for dipthong in value.split(','):
-                        dipthongs.append(dipthong[0] + dipthong[1])
+                        if len(dipthong) > 1:
+                            dipthongs.append(dipthong[0] + dipthong[1])
 
-                #read ata for consonant types
+                #read data for consonant types
                 elif key == 'consonants':
                     for consonant in value.split(','):
                         consonants.append(consonant)
                 elif key == 'codas':
-                    for coda in value:
+                    for coda in value.split(','):
                         codas.append(coda)
                 elif key == 'coda_clusters':
                     for cluster in value.split(','):
@@ -123,7 +126,7 @@ def load_data():
             vowels_and_dipthongs.extend(vowels + dipthongs)
     except:
         print('Phonetics file missing or invalidly formatted')
-        exit()
+        raise
 
 #Determine if an onset is present in this structure. The idea here is based on the fact that list.index raises and error if the element is not present
 def has_onset(syllable_structure):
@@ -233,7 +236,8 @@ def gen_all_syllables(syllable_structure, no_dipthongs):
             add_single_consonant(onset_set, i)
     elif v > 1:
         for i in range(len(onset_clusters)):
-            add_onset_cluster(onset_set, v - 1 - 2, i)
+            for j in range(len(onset_clusters[i])):
+                add_onset_cluster(onset_set, v - 1 - 2, i)
 
     #vowel
     for i in range(len(vowels if no_dipthongs else vowels_and_dipthongs)):
@@ -245,7 +249,8 @@ def gen_all_syllables(syllable_structure, no_dipthongs):
             add_single_coda(coda_set, i)
     elif coda_num > 1:
         for i in range(len(coda_clusters)):
-            add_coda_cluster(coda_set, coda_num - 1 - 2)
+            for j in range(len(coda_clusters[i])):
+                add_coda_cluster(coda_set, coda_num - 1 - 2, j)
 
     #make sure each list has at least one element so the loop runs!
     if len(onset_set) == 0:
@@ -366,6 +371,7 @@ def start_gen():
     no_reps = False
     out_file = None
     gen_all = False
+    rand = False
 
     #Get user input
     try:
@@ -400,6 +406,8 @@ def start_gen():
         no_codas = True
     if '-noreps' in sys.argv:
         no_reps = True
+    if '-rand' in sys.argv:
+        rand = True
 
     for element in sys.argv:
         if '-out:' in element:
@@ -410,6 +418,10 @@ def start_gen():
         words = gen_all_words(num_syllables, no_cluster, no_dipthongs, no_onsets, no_codas, no_onset_clusters, no_coda_clusters)
     else:    
         words = gen_words(num_words, num_syllables, no_cluster, no_dipthongs, no_onsets, no_codas, no_reps, no_onset_clusters, no_coda_clusters)
+
+    #randomize if needed
+    if rand:
+        random.shuffle(words)
 
     #write data to a file if one is given for output; else, write to the terminal
     if out_file == None:
